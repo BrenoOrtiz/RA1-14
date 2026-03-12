@@ -3,6 +3,10 @@
 
 ---
 
+# Diagrama de Estados do AFD
+
+[https://excalidraw.com/#json=30W3-zuSSFjBpbou5H_s7,Z0F_Bzyei0viubi6o_NYNA](Link para Diagrama)
+
 ## Estrutura de Pastas
 
 ```
