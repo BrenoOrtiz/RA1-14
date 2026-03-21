@@ -1,3 +1,6 @@
+class LexerError(Exception):
+    pass
+
 
 def estado_erro(char, buffer, pos):
     """Estado de absorção de erros. Levanta LexerError com mensagem detalhada."""
