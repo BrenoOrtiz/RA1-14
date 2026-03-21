@@ -91,3 +91,51 @@ ESTADOS = {
     "estado_operador": estado_operador,
 }
 
+
+def tokenizar(linha):
+    """
+    Percorre a linha caractere por caractere, delegando ao estado atual do AFD.
+    Retorna lista de tokens ou levanta LexerError.
+    """
+    tokens = []
+    pos = 0
+    estado_atual = "estado_inicial"
+    buffer = ""
+
+    while pos < len(linha):
+        char = linha[pos]
+
+        estado_atual, token, buffer = ESTADOS[estado_atual](char, buffer)
+
+        if token is not None:
+            tokens.append(token)
+
+        if estado_atual == "reprocessar":
+            estado_atual = "estado_inicial"
+        else:
+            pos += 1
+
+    if estado_atual == "estado_numero" or estado_atual == "estado_numero_decimal":
+        tokens.append({"tipo": "NUMERO", "valor": buffer})
+    elif estado_atual == "estado_identificador":
+        if buffer == "RES":
+            tokens.append({"tipo": "KEYWORD_RES", "valor": "RES"})
+        else:
+            tokens.append({"tipo": "MEM_ID", "valor": buffer})
+    elif estado_atual == "estado_operador":
+        tokens.append({"tipo": "OPERADOR", "valor": buffer})
+
+    
+    contador_paren = 0
+    for token in tokens:
+        if token["tipo"] == "ABRE_PAREN":
+            contador_paren += 1
+        elif token["tipo"] == "FECHA_PAREN":
+            contador_paren -= 1
+        if contador_paren < 0:
+            raise LexerError("Parêntese de fechamento sem correspondente de abertura")
+
+    if contador_paren != 0:
+        raise LexerError("Parênteses desbalanceados: faltam parênteses de fechamento")
+
+    return tokens
