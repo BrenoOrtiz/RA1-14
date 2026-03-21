@@ -81,3 +81,13 @@ def estado_inicial(char, buffer):
         return estado_operador(char, "")
 
     estado_erro(char, "", -1)
+
+
+ESTADOS = {
+    "estado_inicial": estado_inicial,
+    "estado_numero": estado_numero,
+    "estado_numero_decimal": estado_numero_decimal,
+    "estado_identificador": estado_identificador,
+    "estado_operador": estado_operador,
+}
+
