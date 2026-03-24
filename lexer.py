@@ -3,21 +3,33 @@ class LexerError(Exception):
 
 
 def estado_erro(char, buffer, pos):
-    """Estado de absorção de erros. Levanta LexerError com mensagem detalhada."""
+    """Estado de absorção de erros. Levanta LexerError com mensagem detalhada.
+
+    char (str): caractere inválido encontrado
+    buffer (str): conteúdo acumulado do token até o momento do erro
+    pos (int): posição do caractere na linha
+    """
     raise LexerError(
         f"Caractere inválido '{char}' na posição {pos}. Buffer atual: '{buffer}'"
     )
 
 
 def estado_parentese(char):
-    """Reconhece parênteses e emite o token correspondente."""
+    """Reconhece parênteses e emite o token correspondente.
+
+    char (str): caractere '(' ou ')'
+    """
     if char == '(':
         return "estado_inicial", {"tipo": "ABRE_PAREN", "valor": "("}, ""
     return "estado_inicial", {"tipo": "FECHA_PAREN", "valor": ")"}, ""
 
 
 def estado_operador(char, buffer):
-    """Reconhece operadores de um ou dois caracteres."""
+    """Reconhece operadores de um ou dois caracteres.
+
+    char (str): caractere atual sendo analisado
+    buffer (str): buffer acumulado (usado para detectar '//' como dois caracteres)
+    """
     if buffer == "/":
         # Segundo caractere após /
         if char == '/':
@@ -32,7 +44,11 @@ def estado_operador(char, buffer):
 
 
 def estado_numero(char, buffer):
-    """Acumula dígitos e no máximo um ponto decimal para formar um NUMERO."""
+    """Acumula dígitos e no máximo um ponto decimal para formar um NUMERO.
+
+    char (str): caractere atual sendo analisado
+    buffer (str): dígitos acumulados até o momento
+    """
     if char >= '0' and char <= '9':
         return "estado_numero", None, buffer + char
     if char == '.' and '.' not in buffer:
@@ -44,7 +60,11 @@ def estado_numero(char, buffer):
 
 
 def estado_numero_decimal(char, buffer):
-    """Acumula a parte fracionária do número após o ponto decimal."""
+    """Acumula a parte fracionária do número após o ponto decimal.
+
+    char (str): caractere atual sendo analisado
+    buffer (str): parte inteira + ponto + dígitos fracionários acumulados
+    """
     if char >= '0' and char <= '9':
         return "estado_numero_decimal", None, buffer + char
     if char == '.':
@@ -54,7 +74,11 @@ def estado_numero_decimal(char, buffer):
 
 
 def estado_identificador(char, buffer):
-    """Acumula letras maiúsculas para formar identificadores (MEM, RES, etc.)."""
+    """Acumula letras maiúsculas para formar identificadores (MEM, RES, etc.).
+
+    char (str): caractere atual sendo analisado
+    buffer (str): letras maiúsculas acumuladas até o momento
+    """
     if char >= 'A' and char <= 'Z':
         return "estado_identificador", None, buffer + char
     # Fim do identificador — classifica e reprocessa
@@ -67,6 +91,9 @@ def estado_inicial(char, buffer):
     """
     Ponto de entrada do AFD. Roteia para o estado correto com base no caractere.
     Retorna (proximo_estado, token_ou_None, buffer).
+
+    char (str): caractere atual sendo analisado
+    buffer (str): buffer acumulado (não utilizado neste estado, sempre vazio)
     """
     if char == ' ' or char == '\t':
         return "estado_inicial", None, ""
@@ -99,6 +126,8 @@ def tokenizar(linha):
     """
     Percorre a linha caractere por caractere, delegando ao estado atual do AFD.
     Retorna lista de tokens ou levanta LexerError.
+
+    linha (str): string com uma linha de expressão RPN
     """
     tokens = []
     pos = 0
