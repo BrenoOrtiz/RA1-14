@@ -50,3 +50,27 @@ def main():
             "expressao": linha,
             "tokens": tokens
         })
+        
+        continue
+    
+    tokens_json.append({
+        "linha": i,
+        "expressao": linha,
+        "tokens": tokens
+    })
+
+    try:
+        resultado = executarExpressao(tokens, memoria, historico)
+        resultados.append(resultado)
+
+        if resultado is not None:
+            historico.append(resultado)
+
+    except Exception as e:
+        print(f"[ERRO executor] Linha {i}: {e}", file=sys.stderr)
+        resultados.append(Exception(str(e)))
+
+    try:
+        gerarAssembly(tokens, asm_buffer)
+    except Exception as e:
+        print(f"[ERRO codegen] Linha {i}: {e}", file=sys.stderr)        
