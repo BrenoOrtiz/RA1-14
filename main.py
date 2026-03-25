@@ -51,26 +51,36 @@ def main():
             "tokens": tokens
         })
         
-        continue
+        try:
+            resultado = executarExpressao(tokens, memoria, historico)
+            resultados.append(resultado)
+
+            if resultado is not None:
+                historico.append(resultado)
+
+        except Exception as e:
+            print(f"[ERRO executor] Linha {i}: {e}", file=sys.stderr)
+            resultados.append(Exception(str(e)))
+
+        try:
+            gerarAssembly(tokens, asm_buffer)
+        except Exception as e:
+            print(f"[ERRO codegen] Linha {i}: {e}", file=sys.stderr)        
+            
+    os.makedirs("output", exist_ok=True)
+
+    tokens_path = os.path.join("output", "tokens_last_run.json")
+    with open(tokens_path, "w", encoding="utf-8") as f:
+        json.dump(tokens_json, f, ensure_ascii=False, indent=2)
+
+    asm_path = os.path.join("output", "assembly_last_run.asm")
+    with open(asm_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(asm_buffer))
+        f.write("\n")
+
+    exibirResultados(resultados)
     
-    tokens_json.append({
-        "linha": i,
-        "expressao": linha,
-        "tokens": tokens
-    })
-
-    try:
-        resultado = executarExpressao(tokens, memoria, historico)
-        resultados.append(resultado)
-
-        if resultado is not None:
-            historico.append(resultado)
-
-    except Exception as e:
-        print(f"[ERRO executor] Linha {i}: {e}", file=sys.stderr)
-        resultados.append(Exception(str(e)))
-
-    try:
-        gerarAssembly(tokens, asm_buffer)
-    except Exception as e:
-        print(f"[ERRO codegen] Linha {i}: {e}", file=sys.stderr)        
+ 
+if __name__ == "__main__":
+    main()
+ 
