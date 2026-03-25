@@ -15,7 +15,7 @@ rpn-to-assembly/
 ├── main.py                  # Ponto de entrada do programa
 ├── lexer.py                 # Analisador léxico (AFD)
 ├── parser.py                # parseExpressao — extrai tokens por linha
-├── executor.py              # executarExpressao — avalia expressões RPN
+├── executor.py              # executarExpressao — avalia expressões RPN com pilha
 ├── codegen.py               # gerarAssembly — traduz tokens para ARMv7
 ├── file_io.py               # lerArquivo — leitura do arquivo de entrada
 ├── display.py               # exibirResultados — formatação da saída
@@ -152,36 +152,35 @@ Implementa um Autômato Finito Determinístico (AFD) onde **cada estado é uma f
 
 ---
 
-### `executor.py` — Validação Estrutural de Expressões RPN
+### `executor.py` — Avaliação de Expressões RPN
 
-> **Importante:** nenhum cálculo aritmético é realizado por este módulo nem por qualquer outro código Python. Toda computação numérica ocorre exclusivamente na execução do código Assembly gerado (ex.: CPulator).
-
-#### `executarExpressao(tokens: list[dict], memoria: dict, historico: list) -> None`
+#### `executarExpressao(tokens: list[dict], memoria: dict, historico: list) -> float | None`
 - **Entrada:**
   - `tokens` — lista de tokens produzida por `parseExpressao`
-  - `memoria` — dicionário `{nome_mem: str}` com identificadores de memória declarados
-  - `historico` — lista de rótulos/etiquetas de resultados anteriores para referência `RES`
-- **Saída:** `None` — não retorna valor numérico; apenas valida a estrutura da expressão
+  - `memoria` — dicionário `{nome_mem: float}` com variáveis de memória e seus valores
+  - `historico` — lista de resultados numéricos de expressões anteriores para referência `RES`
+- **Saída:** `float` com o resultado da expressão, ou `None` para comandos de armazenamento em memória
 - **Lógica:**
-  1. Percorre os tokens para verificar a estrutura RPN sem avaliá-la numericamente:
-     - `NUMERO` → registra presença de operando
-     - `OPERADOR` / `OPERADOR_INT_DIV` → verifica se há operandos suficientes na pilha simbólica
-     - `KEYWORD_RES` com N → verifica se N está dentro do histórico de etiquetas disponíveis
-     - `MEM_ID` seguido de valor → registra declaração de variável de memória
-     - `MEM_ID` sozinho → verifica se identificador foi declarado anteriormente
-  2. Lança `ExecError` em caso de estrutura inválida (pilha simbólica mal formada, índice `RES` fora do intervalo ou identificador de memória não declarado)
+  1. Utiliza uma pilha para avaliar a expressão RPN, tratando parênteses como delimitadores de subexpressões:
+     - `ABRE_PAREN` → empilha um marcador de início de subexpressão
+     - `FECHA_PAREN` → finaliza a subexpressão atual; o resultado parcial da subexpressão é empilhado de volta como operando
+     - `NUMERO` → converte para `float` e empilha como operando
+     - `OPERADOR` / `OPERADOR_INT_DIV` → desempilha dois operandos, aplica a operação e empilha o resultado
+     - `KEYWORD_RES` → o próximo número indica o índice no `historico`; empilha o valor correspondente
+     - `MEM_ID` seguido de valor → armazena o valor em `memoria` sob o identificador; retorna `None`
+     - `MEM_ID` sozinho → busca o valor em `memoria` e empilha (retorna `0.0` se não inicializado)
+  2. Ao final, o topo da pilha contém o resultado da expressão
+  3. Lança `ExecError` em caso de erro (divisão por zero, índice `RES` fora do intervalo, pilha mal formada, etc.)
 
-**Nota:** os valores reais das operações abaixo são computados integralmente pelo Assembly ARMv7 gerado:
-
-| Operador | Operação                   | Tipo Assembly |
-|----------|----------------------------|---------------|
-| `+`      | Adição                     | `VADD.F64`    |
-| `-`      | Subtração                  | `VSUB.F64`    |
-| `*`      | Multiplicação              | `VMUL.F64`    |
-| `/`      | Divisão real               | `VDIV.F64`    |
-| `//`     | Divisão inteira            | `SDIV`        |
-| `%`      | Resto da divisão inteira   | `SDIV` + `MLS`|
-| `^`      | Potenciação (B inteiro ≥ 0)| loop `VMUL.F64`|
+| Operador | Operação                   |
+|----------|----------------------------|
+| `+`      | Adição                     |
+| `-`      | Subtração                  |
+| `*`      | Multiplicação              |
+| `/`      | Divisão real               |
+| `//`     | Divisão inteira (trunca)   |
+| `%`      | Resto da divisão inteira   |
+| `^`      | Potenciação (B inteiro ≥ 0)|
 
 ---
 
@@ -221,16 +220,15 @@ Implementa um Autômato Finito Determinístico (AFD) onde **cada estado é uma f
 ### `display.py` — Exibição de Resultados
 
 #### `exibirResultados(resultados: list) -> None`
-- **Entrada:** lista de strings com os resultados lidos da saída da execução Assembly, um por linha do arquivo de entrada
+- **Entrada:** lista de valores retornados por `executarExpressao` (`float` ou `None`), um por linha do arquivo de entrada
 - **Saída:** nenhum valor de retorno; imprime no `stdout`
 - **Lógica:**
   1. Percorre `resultados` com índice
-  2. Para cada resultado obtido da execução do Assembly:
-     - Valor numérico → exibe o resultado conforme retornado pelo Assembly (ex.: `3.1`)
-     - `None` / ausente → exibe `"(sem retorno)"` para comandos de armazenamento em memória
+  2. Para cada resultado:
+     - `float` → exibe o valor numérico (ex.: `3.1`)
+     - `None` → exibe `"(sem retorno)"` para comandos de armazenamento em memória
      - Exceção capturada → exibe `"ERRO"` na linha correspondente
   3. Formato de saída: `Linha N: <resultado>`
-- **Nota:** nenhum cálculo é realizado neste módulo; os valores exibidos são exclusivamente os resultados produzidos pela execução do código Assembly gerado
 
 ---
 
@@ -238,7 +236,7 @@ Implementa um Autômato Finito Determinístico (AFD) onde **cada estado é uma f
 
 #### `main()`
 - **Entrada:** argumento de linha de comando `sys.argv[1]` (nome do arquivo de teste)
-- **Saída:** código Assembly gerado em `output/assembly_last_run.asm` + tokens em `output/tokens_last_run.json`; os resultados numéricos são obtidos executando o Assembly gerado (ex.: CPulator)
+- **Saída:** código Assembly gerado em `output/assembly_last_run.asm` + tokens em `output/tokens_last_run.json` + resultados no `stdout`
 - **Lógica (fluxo completo):**
 
 ```
@@ -246,12 +244,11 @@ Implementa um Autômato Finito Determinístico (AFD) onde **cada estado é uma f
 2. lerArquivo(arquivo, linhas)
 3. Para cada linha em linhas:
    a. parseExpressao(linha, tokens)        → extrai tokens via AFD
-   b. executarExpressao(tokens, mem, hist) → valida estrutura RPN (sem cálculo)
+   b. executarExpressao(tokens, mem, hist) → avalia expressão RPN, retorna float|None
    c. gerarAssembly(tokens, asm_buffer)    → acumula código Assembly ARMv7
 4. Salva tokens em output/tokens_last_run.json
 5. Salva Assembly em output/assembly_last_run.asm
-6. [Fora do Python] Executa o Assembly gerado no CPulator → obtém resultados
-7. exibirResultados(resultados_do_assembly)
+6. exibirResultados(resultados)
 
 ```
 
@@ -271,19 +268,13 @@ parseExpressao()  ←→  tokenizar() [AFD]
     ├──────────────────────────────────────────────┐
     ▼                                              ▼
 executarExpressao()                         gerarAssembly()
-  (valida estrutura,                               │  str (ARMv7)
-   SEM cálculo)                                    ▼
-                                      assembly_last_run.asm
-                                                   │
-                                     [execução no CPulator]
-                                                   │  resultados numéricos
-                                                   ▼
-                                        exibirResultados()
-                                                   │
-                                                stdout
-
-NOTA: nenhum valor numérico é calculado pelo Python.
-      O cálculo ocorre exclusivamente na execução do Assembly.
+  (avalia com pilha,                               │  str (ARMv7)
+   trata parênteses)                               ▼
+    │  float | None                   assembly_last_run.asm
+    ▼
+exibirResultados()
+    │
+ stdout
 ```
 
 ---
