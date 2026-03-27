@@ -3,13 +3,15 @@
 
 GRUPO - **RA1 14**
 
+Professor: Frank Alcantra
+
 Integrantes:
 
 **Breno Ortiz David**, user: @BrenoOrtiz
 
-**Vitor Coradin Ferreira**, user: @VitorCoradinFerreira
-
 **Carlos Eduardo Ferreira Brandt**, user: @CaaduuuC
+
+**Vitor Coradin Ferreira**, user: @VitorCoradinFerreira
 
 **João Ishikawa Onofrio**, user: @JoaoIshikawa
 
