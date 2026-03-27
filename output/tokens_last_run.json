@@ -79,54 +79,6 @@
   },
   {
     "linha": 4,
-    "expressao": "(15.75 MA)",
-    "tokens": [
-      {
-        "tipo": "ABRE_PAREN",
-        "valor": "("
-      },
-      {
-        "tipo": "NUMERO",
-        "valor": "15.75"
-      },
-      {
-        "tipo": "MEM_ID",
-        "valor": "MA"
-      },
-      {
-        "tipo": "FECHA_PAREN",
-        "valor": ")"
-      }
-    ]
-  },
-  {
-    "linha": 5,
-    "expressao": "(MA 3 *)",
-    "tokens": [
-      {
-        "tipo": "ABRE_PAREN",
-        "valor": "("
-      },
-      {
-        "tipo": "MEM_ID",
-        "valor": "MA"
-      },
-      {
-        "tipo": "NUMERO",
-        "valor": "3"
-      },
-      {
-        "tipo": "OPERADOR",
-        "valor": "*"
-      },
-      {
-        "tipo": "FECHA_PAREN",
-        "valor": ")"
-      }
-    ]
-  },
-  {
-    "linha": 6,
     "expressao": "(100.8 4 /)",
     "tokens": [
       {
@@ -152,7 +104,7 @@
     ]
   },
   {
-    "linha": 7,
+    "linha": 5,
     "expressao": "(17 5 //)",
     "tokens": [
       {
@@ -178,7 +130,7 @@
     ]
   },
   {
-    "linha": 8,
+    "linha": 6,
     "expressao": "(17 5 %)",
     "tokens": [
       {
@@ -204,8 +156,8 @@
     ]
   },
   {
-    "linha": 9,
-    "expressao": "(2.5 8 ^)",
+    "linha": 7,
+    "expressao": "(2.5 4 ^)",
     "tokens": [
       {
         "tipo": "ABRE_PAREN",
@@ -217,7 +169,7 @@
       },
       {
         "tipo": "NUMERO",
-        "valor": "8"
+        "valor": "4"
       },
       {
         "tipo": "OPERADOR",
@@ -230,49 +182,42 @@
     ]
   },
   {
-    "linha": 10,
-    "expressao": "erro#invalido",
-    "erro": "Erro lexico"
-  },
-  {
-    "linha": 11,
-    "expressao": "((3 4 +) (2 5 *) -)",
+    "linha": 8,
+    "expressao": "(15.75 MA)",
     "tokens": [
       {
         "tipo": "ABRE_PAREN",
         "valor": "("
       },
       {
-        "tipo": "ABRE_PAREN",
-        "valor": "("
-      },
-      {
         "tipo": "NUMERO",
-        "valor": "3"
+        "valor": "15.75"
       },
       {
-        "tipo": "NUMERO",
-        "valor": "4"
-      },
-      {
-        "tipo": "OPERADOR",
-        "valor": "+"
+        "tipo": "MEM_ID",
+        "valor": "MA"
       },
       {
         "tipo": "FECHA_PAREN",
         "valor": ")"
-      },
+      }
+    ]
+  },
+  {
+    "linha": 9,
+    "expressao": "(MA 3 *)",
+    "tokens": [
       {
         "tipo": "ABRE_PAREN",
         "valor": "("
       },
       {
-        "tipo": "NUMERO",
-        "valor": "2"
+        "tipo": "MEM_ID",
+        "valor": "MA"
       },
       {
         "tipo": "NUMERO",
-        "valor": "5"
+        "valor": "3"
       },
       {
         "tipo": "OPERADOR",
@@ -281,16 +226,47 @@
       {
         "tipo": "FECHA_PAREN",
         "valor": ")"
+      }
+    ]
+  },
+  {
+    "linha": 10,
+    "expressao": "(1 RES 2 RES +)",
+    "tokens": [
+      {
+        "tipo": "ABRE_PAREN",
+        "valor": "("
+      },
+      {
+        "tipo": "NUMERO",
+        "valor": "1"
+      },
+      {
+        "tipo": "KEYWORD_RES",
+        "valor": "RES"
+      },
+      {
+        "tipo": "NUMERO",
+        "valor": "2"
+      },
+      {
+        "tipo": "KEYWORD_RES",
+        "valor": "RES"
       },
       {
         "tipo": "OPERADOR",
-        "valor": "-"
+        "valor": "+"
       },
       {
         "tipo": "FECHA_PAREN",
         "valor": ")"
       }
     ]
+  },
+  {
+    "linha": 11,
+    "expressao": "erro#invalido",
+    "erro": "Erro lexico"
   },
   {
     "linha": 12,
@@ -350,6 +326,64 @@
   },
   {
     "linha": 14,
+    "expressao": "((3 4 +) (2 5 *) -)",
+    "tokens": [
+      {
+        "tipo": "ABRE_PAREN",
+        "valor": "("
+      },
+      {
+        "tipo": "ABRE_PAREN",
+        "valor": "("
+      },
+      {
+        "tipo": "NUMERO",
+        "valor": "3"
+      },
+      {
+        "tipo": "NUMERO",
+        "valor": "4"
+      },
+      {
+        "tipo": "OPERADOR",
+        "valor": "+"
+      },
+      {
+        "tipo": "FECHA_PAREN",
+        "valor": ")"
+      },
+      {
+        "tipo": "ABRE_PAREN",
+        "valor": "("
+      },
+      {
+        "tipo": "NUMERO",
+        "valor": "2"
+      },
+      {
+        "tipo": "NUMERO",
+        "valor": "5"
+      },
+      {
+        "tipo": "OPERADOR",
+        "valor": "*"
+      },
+      {
+        "tipo": "FECHA_PAREN",
+        "valor": ")"
+      },
+      {
+        "tipo": "OPERADOR",
+        "valor": "-"
+      },
+      {
+        "tipo": "FECHA_PAREN",
+        "valor": ")"
+      }
+    ]
+  },
+  {
+    "linha": 15,
     "expressao": "((MA 2 /) (TOTAL 3 +) *)",
     "tokens": [
       {
@@ -399,6 +433,64 @@
       {
         "tipo": "OPERADOR",
         "valor": "*"
+      },
+      {
+        "tipo": "FECHA_PAREN",
+        "valor": ")"
+      }
+    ]
+  },
+  {
+    "linha": 16,
+    "expressao": "((17 5 //) (17 5 %) ^)",
+    "tokens": [
+      {
+        "tipo": "ABRE_PAREN",
+        "valor": "("
+      },
+      {
+        "tipo": "ABRE_PAREN",
+        "valor": "("
+      },
+      {
+        "tipo": "NUMERO",
+        "valor": "17"
+      },
+      {
+        "tipo": "NUMERO",
+        "valor": "5"
+      },
+      {
+        "tipo": "OPERADOR_INT_DIV",
+        "valor": "//"
+      },
+      {
+        "tipo": "FECHA_PAREN",
+        "valor": ")"
+      },
+      {
+        "tipo": "ABRE_PAREN",
+        "valor": "("
+      },
+      {
+        "tipo": "NUMERO",
+        "valor": "17"
+      },
+      {
+        "tipo": "NUMERO",
+        "valor": "5"
+      },
+      {
+        "tipo": "OPERADOR",
+        "valor": "%"
+      },
+      {
+        "tipo": "FECHA_PAREN",
+        "valor": ")"
+      },
+      {
+        "tipo": "OPERADOR",
+        "valor": "^"
       },
       {
         "tipo": "FECHA_PAREN",

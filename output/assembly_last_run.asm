@@ -6,13 +6,13 @@ lit_2:  .double 20
 lit_3:  .double 4.3
 lit_4:  .double 3.14
 lit_5:  .double 7
-lit_6:  .double 15.75
-lit_7:  .double 3
-lit_8:  .double 100.8
-lit_9:  .double 4
-lit_10:  .double 17
-lit_11:  .double 2.5
-lit_12:  .double 8
+lit_6:  .double 100.8
+lit_7:  .double 4
+lit_8:  .double 17
+lit_9:  .double 2.5
+lit_10:  .double 15.75
+lit_11:  .double 3
+lit_12:  .double 1
 lit_13:  .double 2
 lit_14:  .double 10.25
 lit_15:  .double 5.1
@@ -21,14 +21,16 @@ mem_total:  .double 0.0
 res_hist_1:  .double 0.0
 res_hist_2:  .double 0.0
 res_hist_3:  .double 0.0
+res_hist_4:  .double 0.0
 res_hist_5:  .double 0.0
 res_hist_6:  .double 0.0
 res_hist_7:  .double 0.0
-res_hist_8:  .double 0.0
 res_hist_9:  .double 0.0
-res_hist_11:  .double 0.0
+res_hist_10:  .double 0.0
 res_hist_13:  .double 0.0
 res_hist_14:  .double 0.0
+res_hist_15:  .double 0.0
+res_hist_16:  .double 0.0
 
 .global _start
 .text
@@ -119,21 +121,42 @@ _start:
     MOV      R0, #10
     BL       uart_char
     @ ===== Linha 4 =====
-    @ carrega 15.75 em D0
+    @ carrega 100.8 em D0
     LDR     R0, =lit_6
     VLDR    D0, [R0]
-    @ armazena D0 em MA
-    LDR     R0, =mem_ma
-    VSTR    D0, [R0]
-    @ ===== Linha 5 =====
-    @ lê MA -> D0
-    LDR     R0, =mem_ma
-    VLDR    D0, [R0]
-    @ carrega 3 em D1
+    @ carrega 4 em D1
     LDR     R0, =lit_7
     VLDR    D1, [R0]
-    @ D0 * D1 -> D2
-    VMUL.F64 D2, D0, D1
+    @ D0 / D1 -> D2
+    VDIV.F64 D2, D0, D1
+    @ salva resultado em res_hist_4
+    LDR     R0, =res_hist_4
+    VSTR    D2, [R0]
+    @ imprime 'L<num>= ' no terminal
+    MOV      R0, #76
+    BL       uart_char
+    MOV      R0, #4
+    BL       uart_int
+    MOV      R0, #61
+    BL       uart_char
+    MOV      R0, #32
+    BL       uart_char
+    @ imprime resultado como float
+    VMOV.F64 D0, D2
+    BL       uart_float
+    MOV      R0, #10
+    BL       uart_char
+    @ ===== Linha 5 =====
+    @ carrega 17 em D0
+    LDR     R0, =lit_8
+    VLDR    D0, [R0]
+    @ carrega 5 em D1
+    LDR     R0, =lit_1
+    VLDR    D1, [R0]
+    @ D0 // D1 -> D2
+    VDIV.F64 D3, D0, D1
+    VCVT.S32.F64 S8, D3
+    VCVT.F64.S32 D2, S8
     @ salva resultado em res_hist_5
     LDR     R0, =res_hist_5
     VSTR    D2, [R0]
@@ -152,14 +175,18 @@ _start:
     MOV      R0, #10
     BL       uart_char
     @ ===== Linha 6 =====
-    @ carrega 100.8 em D0
+    @ carrega 17 em D0
     LDR     R0, =lit_8
     VLDR    D0, [R0]
-    @ carrega 4 em D1
-    LDR     R0, =lit_9
+    @ carrega 5 em D1
+    LDR     R0, =lit_1
     VLDR    D1, [R0]
-    @ D0 / D1 -> D2
-    VDIV.F64 D2, D0, D1
+    @ D0 % D1 -> D2
+    VDIV.F64 D3, D0, D1
+    VCVT.S32.F64 S12, D3
+    VCVT.F64.S32 D4, S12
+    VMUL.F64 D5, D4, D1
+    VSUB.F64 D2, D0, D5
     @ salva resultado em res_hist_6
     LDR     R0, =res_hist_6
     VSTR    D2, [R0]
@@ -178,16 +205,26 @@ _start:
     MOV      R0, #10
     BL       uart_char
     @ ===== Linha 7 =====
-    @ carrega 17 em D0
-    LDR     R0, =lit_10
+    @ carrega 2.5 em D0
+    LDR     R0, =lit_9
     VLDR    D0, [R0]
-    @ carrega 5 em D1
-    LDR     R0, =lit_1
+    @ carrega 4 em D1
+    LDR     R0, =lit_7
     VLDR    D1, [R0]
-    @ D0 // D1 -> D2
-    VDIV.F64 D3, D0, D1
-    VCVT.S32.F64 S8, D3
-    VCVT.F64.S32 D2, S8
+    @ D0 ^ D1 -> D2
+    VCVT.S32.F64 S8, D1
+    VMOV     R2, S8
+    MOV      R3, #1
+    VMOV     S8, R3
+    VCVT.F64.S32 D3, S8
+pow_loop_L7_D2:
+    CMP      R2, #0
+    BLE      pow_end_L7_D2
+    VMUL.F64 D3, D3, D0
+    SUB      R2, R2, #1
+    B        pow_loop_L7_D2
+pow_end_L7_D2:
+    VMOV.F64 D2, D3
     @ salva resultado em res_hist_7
     LDR     R0, =res_hist_7
     VSTR    D2, [R0]
@@ -206,56 +243,21 @@ _start:
     MOV      R0, #10
     BL       uart_char
     @ ===== Linha 8 =====
-    @ carrega 17 em D0
+    @ carrega 15.75 em D0
     LDR     R0, =lit_10
     VLDR    D0, [R0]
-    @ carrega 5 em D1
-    LDR     R0, =lit_1
-    VLDR    D1, [R0]
-    @ D0 % D1 -> D2
-    VDIV.F64 D3, D0, D1
-    VCVT.S32.F64 S12, D3
-    VCVT.F64.S32 D4, S12
-    VMUL.F64 D5, D4, D1
-    VSUB.F64 D2, D0, D5
-    @ salva resultado em res_hist_8
-    LDR     R0, =res_hist_8
-    VSTR    D2, [R0]
-    @ imprime 'L<num>= ' no terminal
-    MOV      R0, #76
-    BL       uart_char
-    MOV      R0, #8
-    BL       uart_int
-    MOV      R0, #61
-    BL       uart_char
-    MOV      R0, #32
-    BL       uart_char
-    @ imprime resultado como float
-    VMOV.F64 D0, D2
-    BL       uart_float
-    MOV      R0, #10
-    BL       uart_char
+    @ armazena D0 em MA
+    LDR     R0, =mem_ma
+    VSTR    D0, [R0]
     @ ===== Linha 9 =====
-    @ carrega 2.5 em D0
-    LDR     R0, =lit_11
+    @ lê MA -> D0
+    LDR     R0, =mem_ma
     VLDR    D0, [R0]
-    @ carrega 8 em D1
-    LDR     R0, =lit_12
+    @ carrega 3 em D1
+    LDR     R0, =lit_11
     VLDR    D1, [R0]
-    @ D0 ^ D1 -> D2
-    VCVT.S32.F64 S8, D1
-    VMOV     R2, S8
-    MOV      R3, #1
-    VMOV     S8, R3
-    VCVT.F64.S32 D3, S8
-pow_loop_L9_D2:
-    CMP      R2, #0
-    BLE      pow_end_L9_D2
-    VMUL.F64 D3, D3, D0
-    SUB      R2, R2, #1
-    B        pow_loop_L9_D2
-pow_end_L9_D2:
-    VMOV.F64 D2, D3
+    @ D0 * D1 -> D2
+    VMUL.F64 D2, D0, D1
     @ salva resultado em res_hist_9
     LDR     R0, =res_hist_9
     VSTR    D2, [R0]
@@ -274,10 +276,42 @@ pow_end_L9_D2:
     MOV      R0, #10
     BL       uart_char
     @ ===== Linha 10 =====
-    @ Erro lexico - imprime mensagem
+    @ carrega 1 em D0
+    LDR     R0, =lit_12
+    VLDR    D0, [R0]
+    @ carrega RES[1] em D1
+    LDR     R0, =res_hist_1
+    VLDR    D1, [R0]
+    @ carrega 2 em D2
+    LDR     R0, =lit_13
+    VLDR    D2, [R0]
+    @ carrega RES[2] em D3
+    LDR     R0, =res_hist_2
+    VLDR    D3, [R0]
+    @ D1 + D3 -> D4
+    VADD.F64 D4, D1, D3
+    @ salva resultado em res_hist_10
+    LDR     R0, =res_hist_10
+    VSTR    D4, [R0]
+    @ imprime 'L<num>= ' no terminal
     MOV      R0, #76
     BL       uart_char
     MOV      R0, #10
+    BL       uart_int
+    MOV      R0, #61
+    BL       uart_char
+    MOV      R0, #32
+    BL       uart_char
+    @ imprime resultado como float
+    VMOV.F64 D0, D4
+    BL       uart_float
+    MOV      R0, #10
+    BL       uart_char
+    @ ===== Linha 11 =====
+    @ Erro lexico - imprime mensagem
+    MOV      R0, #76
+    BL       uart_char
+    MOV      R0, #11
     BL       uart_int
     MOV      R0, #61
     BL       uart_char
@@ -305,42 +339,6 @@ pow_end_L9_D2:
     BL       uart_char
     MOV      R0, #111
     BL       uart_char
-    MOV      R0, #10
-    BL       uart_char
-    @ ===== Linha 11 =====
-    @ carrega 3 em D0
-    LDR     R0, =lit_7
-    VLDR    D0, [R0]
-    @ carrega 4 em D1
-    LDR     R0, =lit_9
-    VLDR    D1, [R0]
-    @ D0 + D1 -> D2
-    VADD.F64 D2, D0, D1
-    @ carrega 2 em D3
-    LDR     R0, =lit_13
-    VLDR    D3, [R0]
-    @ carrega 5 em D4
-    LDR     R0, =lit_1
-    VLDR    D4, [R0]
-    @ D3 * D4 -> D5
-    VMUL.F64 D5, D3, D4
-    @ D2 - D5 -> D6
-    VSUB.F64 D6, D2, D5
-    @ salva resultado em res_hist_11
-    LDR     R0, =res_hist_11
-    VSTR    D6, [R0]
-    @ imprime 'L<num>= ' no terminal
-    MOV      R0, #76
-    BL       uart_char
-    MOV      R0, #11
-    BL       uart_int
-    MOV      R0, #61
-    BL       uart_char
-    MOV      R0, #32
-    BL       uart_char
-    @ imprime resultado como float
-    VMOV.F64 D0, D6
-    BL       uart_float
     MOV      R0, #10
     BL       uart_char
     @ ===== Linha 12 =====
@@ -382,24 +380,24 @@ pow_end_L9_D2:
     MOV      R0, #10
     BL       uart_char
     @ ===== Linha 14 =====
-    @ lê MA -> D0
-    LDR     R0, =mem_ma
+    @ carrega 3 em D0
+    LDR     R0, =lit_11
     VLDR    D0, [R0]
-    @ carrega 2 em D1
-    LDR     R0, =lit_13
-    VLDR    D1, [R0]
-    @ D0 / D1 -> D2
-    VDIV.F64 D2, D0, D1
-    @ lê TOTAL -> D3
-    LDR     R0, =mem_total
-    VLDR    D3, [R0]
-    @ carrega 3 em D4
+    @ carrega 4 em D1
     LDR     R0, =lit_7
+    VLDR    D1, [R0]
+    @ D0 + D1 -> D2
+    VADD.F64 D2, D0, D1
+    @ carrega 2 em D3
+    LDR     R0, =lit_13
+    VLDR    D3, [R0]
+    @ carrega 5 em D4
+    LDR     R0, =lit_1
     VLDR    D4, [R0]
-    @ D3 + D4 -> D5
-    VADD.F64 D5, D3, D4
-    @ D2 * D5 -> D6
-    VMUL.F64 D6, D2, D5
+    @ D3 * D4 -> D5
+    VMUL.F64 D5, D3, D4
+    @ D2 - D5 -> D6
+    VSUB.F64 D6, D2, D5
     @ salva resultado em res_hist_14
     LDR     R0, =res_hist_14
     VSTR    D6, [R0]
@@ -414,6 +412,96 @@ pow_end_L9_D2:
     BL       uart_char
     @ imprime resultado como float
     VMOV.F64 D0, D6
+    BL       uart_float
+    MOV      R0, #10
+    BL       uart_char
+    @ ===== Linha 15 =====
+    @ lê MA -> D0
+    LDR     R0, =mem_ma
+    VLDR    D0, [R0]
+    @ carrega 2 em D1
+    LDR     R0, =lit_13
+    VLDR    D1, [R0]
+    @ D0 / D1 -> D2
+    VDIV.F64 D2, D0, D1
+    @ lê TOTAL -> D3
+    LDR     R0, =mem_total
+    VLDR    D3, [R0]
+    @ carrega 3 em D4
+    LDR     R0, =lit_11
+    VLDR    D4, [R0]
+    @ D3 + D4 -> D5
+    VADD.F64 D5, D3, D4
+    @ D2 * D5 -> D6
+    VMUL.F64 D6, D2, D5
+    @ salva resultado em res_hist_15
+    LDR     R0, =res_hist_15
+    VSTR    D6, [R0]
+    @ imprime 'L<num>= ' no terminal
+    MOV      R0, #76
+    BL       uart_char
+    MOV      R0, #15
+    BL       uart_int
+    MOV      R0, #61
+    BL       uart_char
+    MOV      R0, #32
+    BL       uart_char
+    @ imprime resultado como float
+    VMOV.F64 D0, D6
+    BL       uart_float
+    MOV      R0, #10
+    BL       uart_char
+    @ ===== Linha 16 =====
+    @ carrega 17 em D0
+    LDR     R0, =lit_8
+    VLDR    D0, [R0]
+    @ carrega 5 em D1
+    LDR     R0, =lit_1
+    VLDR    D1, [R0]
+    @ D0 // D1 -> D2
+    VDIV.F64 D3, D0, D1
+    VCVT.S32.F64 S8, D3
+    VCVT.F64.S32 D2, S8
+    @ carrega 17 em D5
+    LDR     R0, =lit_8
+    VLDR    D5, [R0]
+    @ carrega 5 em D6
+    LDR     R0, =lit_1
+    VLDR    D6, [R0]
+    @ D5 % D6 -> D7
+    VDIV.F64 D8, D5, D6
+    VCVT.S32.F64 S22, D8
+    VCVT.F64.S32 D9, S22
+    VMUL.F64 D10, D9, D6
+    VSUB.F64 D7, D5, D10
+    @ D2 ^ D7 -> D12
+    VCVT.S32.F64 S28, D7
+    VMOV     R2, S28
+    MOV      R3, #1
+    VMOV     S28, R3
+    VCVT.F64.S32 D13, S28
+pow_loop_L16_D12:
+    CMP      R2, #0
+    BLE      pow_end_L16_D12
+    VMUL.F64 D13, D13, D2
+    SUB      R2, R2, #1
+    B        pow_loop_L16_D12
+pow_end_L16_D12:
+    VMOV.F64 D12, D13
+    @ salva resultado em res_hist_16
+    LDR     R0, =res_hist_16
+    VSTR    D12, [R0]
+    @ imprime 'L<num>= ' no terminal
+    MOV      R0, #76
+    BL       uart_char
+    MOV      R0, #16
+    BL       uart_int
+    MOV      R0, #61
+    BL       uart_char
+    MOV      R0, #32
+    BL       uart_char
+    @ imprime resultado como float
+    VMOV.F64 D0, D12
     BL       uart_float
     MOV      R0, #10
     BL       uart_char
