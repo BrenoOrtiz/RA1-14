@@ -393,9 +393,3 @@ lerArquivo()
 | Arquivo não encontrado              | `file_io.py`       | Mensagem de erro + `sys.exit(1)`                     |
 
 ---
-
-## Execução
-
-```bash
-python main.py tests/teste1.txt
-```
