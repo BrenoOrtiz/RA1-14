@@ -1,0 +1,12 @@
+(50.5 X)
+(30.25 Y)
+(X Y +)
+(X Y - 2.5 *)
+(X Y //)
+(X Y %)
+val$invalido!
+(10 X *)
+(Y 2 ^)
+(X Y * 100 +)
+(200.8 BANCO)
+(BANCO X / Y -)

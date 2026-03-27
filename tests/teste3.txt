@@ -1,0 +1,13 @@
+(8 4 +)
+(6.5 3.14 *)
+(24.99 VAL)
+(1 RES 2 RES +)
+(1 RES 2.5 /)
+(VAL 10 //)
+d@do!err
+(4 RES 5 RES *)
+(50.75 VAL -)
+(6 RES 3 %)
+(7.2 2 ^)
+(VAL 5.5 + SOMA)
+(SOMA 8 RES -)
