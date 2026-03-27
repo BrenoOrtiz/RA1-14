@@ -87,26 +87,26 @@ def executarExpressao(tokens, memoria, historico):
             pilha.append(_aplicar_operador(valor, b, a))
 
         elif tipo == "KEYWORD_RES":
-            # Próximo token deve ser NUMERO com o índice (1-based)
-            i += 1
-            if i >= n or tokens[i]["tipo"] != "NUMERO":
-                raise ExecError("RES deve ser seguido de um número inteiro")
-            indice = int(float(tokens[i]["valor"]))
-            if indice < 1 or indice > len(historico):
+            # O índice da linha vem ANTES (já na pilha)
+            if not pilha or pilha[-1] is _MARCA:
+                raise ExecError("RES requer um número antes (ex: 1 RES)")
+            indice = int(pilha.pop())
+            if indice not in historico:
                 raise ExecError(
-                    f"Índice RES {indice} fora do intervalo (histórico tem {len(historico)} entradas)"
+                    f"RES {indice}: linha {indice} não possui resultado no histórico"
                 )
-            pilha.append(historico[indice - 1])
+            pilha.append(historico[indice])
 
         elif tipo == "MEM_ID":
-            # Verifica se o próximo token é um valor para armazenar
-            if i + 1 < n and tokens[i + 1]["tipo"] == "NUMERO":
-                i += 1
-                valor_mem = float(tokens[i]["valor"])
+            # Store: valor já na pilha + próximo token é FECHA_PAREN ou fim
+            tem_valor = pilha and pilha[-1] is not _MARCA
+            proximo_fecha = (i + 1 < n and tokens[i + 1]["tipo"] == "FECHA_PAREN") or (i + 1 >= n)
+            if tem_valor and proximo_fecha:
+                valor_mem = pilha.pop()
                 memoria[valor] = valor_mem
                 return None
             else:
-                # Leitura de memória
+                # Load: empilha valor da memória
                 pilha.append(memoria.get(valor, 0.0))
 
         else:
