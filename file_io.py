@@ -1,7 +1,21 @@
 import sys
 
 def lerArquivo(nome_arquivo: str, linhas: list) -> list[str]:
-    """Abre o arquivo, lê todas as linhas, remove espaços e linhas vazias, preenche a lista e retorna"""
+    """Lê um arquivo texto e extrai suas linhas não vazias.
+
+    Abre o arquivo, remove espaços em branco das extremidades de cada
+    linha e descarta linhas vazias. Encerra o programa com mensagem
+    de erro se o arquivo não for encontrado ou não houver permissão.
+
+    Args:
+        nome_arquivo: Caminho do arquivo a ser lido.
+        linhas: Lista mutável que será preenchida com as linhas
+            processadas.
+
+    Returns:
+        Mesma referência de ``linhas``, preenchida com as linhas
+        não vazias do arquivo.
+    """
     try:
         with open(nome_arquivo, 'r', encoding='utf-8') as arquivo:
             conteudo = arquivo.readlines()

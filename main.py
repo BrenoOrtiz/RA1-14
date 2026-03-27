@@ -4,17 +4,20 @@ import os
  
 from file_io import lerArquivo
 from parser import parseExpressao
+from lexer import LexerError
 from executor import executarExpressao
 from codegen import gerarAssembly
 from display import exibirResultados
  
  
 def main():
-    """
-    Ponto de entrada do programa. Valida os argumentos de linha de comando,
-    coordena a leitura do arquivo, tokenização, execução, geração de Assembly
-    e exibição dos resultados. Salva os tokens em JSON e o Assembly em .asm
-    na pasta output/.
+    """Ponto de entrada do programa.
+
+    Coordena o pipeline completo de processamento de expressões RPN:
+    leitura do arquivo de entrada, análise léxica, execução das
+    expressões, geração de código assembly ARMv7 e exibição dos
+    resultados. Salva os tokens em JSON e o assembly em ``.asm``
+    na pasta ``output/``.
     """
     if len(sys.argv) != 2:
         print("Uso: python main.py <arquivo_de_entrada.txt>")
@@ -35,7 +38,17 @@ def main():
     for i, linha in enumerate(linhas, start=1):
         tokens = []
 
-        parseExpressao(linha, tokens)
+        try:
+            parseExpressao(linha, tokens)
+        except LexerError:
+            resultados.append("Erro lexico")
+            tokens_json.append({
+                "linha": i,
+                "expressao": linha,
+                "erro": "Erro lexico"
+            })
+            todas_tokens.append("ERRO_LEXICO")
+            continue
 
         if not tokens:
             resultados.append(None)

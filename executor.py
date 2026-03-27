@@ -1,9 +1,25 @@
 class ExecError(Exception):
+    """Exceção para erros semânticos durante a execução de expressões RPN."""
     pass
 
 
 def _aplicar_operador(op, b, a):
-    """Aplica operador binário: a op b (a foi empilhado antes de b)."""
+    """Aplica um operador binário sobre dois operandos.
+
+    Em notação RPN o operando ``a`` é empilhado antes de ``b``, portanto
+    a operação realizada é ``a op b``.
+
+    Args:
+        op: String do operador (``+``, ``-``, ``*``, ``/``, ``//``, ``%``, ``^``).
+        b: Operando do topo da pilha (float).
+        a: Operando abaixo do topo da pilha (float).
+
+    Returns:
+        Resultado da operação como float.
+
+    Raises:
+        ExecError: Se houver divisão por zero, expoente negativo ou operador desconhecido.
+    """
     if op == '+':
         return a + b
     elif op == '-':
@@ -32,22 +48,29 @@ def _aplicar_operador(op, b, a):
 
 
 def executarExpressao(tokens, memoria, historico):
+    """Avalia uma expressão RPN representada como lista de tokens.
+
+    Percorre a lista de tokens usando uma pilha para acumular operandos
+    e aplicar operadores. Suporta parênteses aninhados, variáveis de
+    memória (store/load) e referências a resultados anteriores (RES).
+
+    Args:
+        tokens: Lista de dicts ``{"tipo": str, "valor": str}`` produzida
+            por ``parseExpressao``.
+        memoria: Dict ``{nome_var: float}`` com variáveis de memória.
+            Modificado in-place quando há operação de store.
+        historico: Dict ``{num_linha: float}`` com resultados de linhas
+            anteriores, usado pelo comando ``RES``.
+
+    Returns:
+        Float com o resultado da expressão, ou ``None`` quando a
+        expressão é um comando de armazenamento em memória.
+
+    Raises:
+        ExecError: Se houver erro semântico (operandos insuficientes,
+            parênteses desbalanceados, índice RES inválido, etc.).
     """
-    Avalia uma expressão RPN representada como lista de tokens.
-
-    Parâmetros:
-        tokens   -- lista de dicts {"tipo": str, "valor": str} produzida por parseExpressao
-        memoria  -- dict {nome_mem: float} com variáveis de memória (modificado in-place)
-        historico -- lista de floats com resultados anteriores (para KEYWORD_RES)
-
-    Retorna:
-        float com o resultado da expressão, ou
-        None  para comandos de armazenamento em memória (MEM_ID seguido de valor)
-
-    Lança ExecError em caso de erro semântico.
-    """
-    # Pilha principal; cada entrada é um float ou o marcador de subexpressão
-    _MARCA = object()  # sentinela de ABRE_PAREN
+    _MARCA = object()  # sentinela de ABRE_PAREN para controle de subexpressões
 
     pilha = []
     i = 0
@@ -81,13 +104,11 @@ def executarExpressao(tokens, memoria, historico):
                 raise ExecError(f"Operandos insuficientes para '{valor}'")
             b = pilha.pop()
             a = pilha.pop()
-            # Não permite operar sobre marcadores
             if a is _MARCA or b is _MARCA:
                 raise ExecError(f"Operação '{valor}' sobre marcador de parêntese")
             pilha.append(_aplicar_operador(valor, b, a))
 
         elif tipo == "KEYWORD_RES":
-            # O índice da linha vem ANTES (já na pilha)
             if not pilha or pilha[-1] is _MARCA:
                 raise ExecError("RES requer um número antes (ex: 1 RES)")
             indice = int(pilha.pop())
@@ -98,7 +119,6 @@ def executarExpressao(tokens, memoria, historico):
             pilha.append(historico[indice])
 
         elif tipo == "MEM_ID":
-            # Store: valor já na pilha + próximo token é FECHA_PAREN ou fim
             tem_valor = pilha and pilha[-1] is not _MARCA
             proximo_fecha = (i + 1 < n and tokens[i + 1]["tipo"] == "FECHA_PAREN") or (i + 1 >= n)
             if tem_valor and proximo_fecha:
@@ -106,7 +126,6 @@ def executarExpressao(tokens, memoria, historico):
                 memoria[valor] = valor_mem
                 return None
             else:
-                # Load: empilha valor da memória
                 pilha.append(memoria.get(valor, 0.0))
 
         else:

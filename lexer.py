@@ -1,13 +1,18 @@
 class LexerError(Exception):
+    """Exceção para erros detectados durante a análise léxica."""
     pass
 
 
 def estado_erro(char, buffer, pos):
-    """Estado de absorção de erros. Levanta LexerError com mensagem detalhada.
+    """Levanta erro léxico ao encontrar caractere inválido.
 
-    char (str): caractere inválido encontrado
-    buffer (str): conteúdo acumulado do token até o momento do erro
-    pos (int): posição do caractere na linha
+    Args:
+        char: Caractere inválido encontrado.
+        buffer: Conteúdo acumulado do token até o momento do erro.
+        pos: Posição do caractere na linha.
+
+    Raises:
+        LexerError: Sempre levantada com mensagem detalhada.
     """
     raise LexerError(
         f"Caractere inválido '{char}' na posição {pos}. Buffer atual: '{buffer}'"
@@ -17,7 +22,12 @@ def estado_erro(char, buffer, pos):
 def estado_parentese(char):
     """Reconhece parênteses e emite o token correspondente.
 
-    char (str): caractere '(' ou ')'
+    Args:
+        char: Caractere ``(`` ou ``)``.
+
+    Returns:
+        Tupla ``(proximo_estado, token, buffer)`` com o token
+        ``ABRE_PAREN`` ou ``FECHA_PAREN``.
     """
     if char == '(':
         return "estado_inicial", {"tipo": "ABRE_PAREN", "valor": "("}, ""
@@ -27,8 +37,16 @@ def estado_parentese(char):
 def estado_operador(char, buffer):
     """Reconhece operadores de um ou dois caracteres.
 
-    char (str): caractere atual sendo analisado
-    buffer (str): buffer acumulado (usado para detectar '//' como dois caracteres)
+    Trata o caso especial de ``//`` (divisão inteira) que requer
+    lookahead de um caractere.
+
+    Args:
+        char: Caractere atual sendo analisado.
+        buffer: Buffer acumulado (contém ``/`` quando aguardando
+            segundo caractere).
+
+    Returns:
+        Tupla ``(proximo_estado, token_ou_None, buffer)``.
     """
     if buffer == "/":
         # Segundo caractere após /
@@ -44,10 +62,20 @@ def estado_operador(char, buffer):
 
 
 def estado_numero(char, buffer):
-    """Acumula dígitos e no máximo um ponto decimal para formar um NUMERO.
+    """Acumula dígitos da parte inteira de um número.
 
-    char (str): caractere atual sendo analisado
-    buffer (str): dígitos acumulados até o momento
+    Transita para ``estado_numero_decimal`` ao encontrar um ponto,
+    ou emite o token ``NUMERO`` ao encontrar um delimitador.
+
+    Args:
+        char: Caractere atual sendo analisado.
+        buffer: Dígitos acumulados até o momento.
+
+    Returns:
+        Tupla ``(proximo_estado, token_ou_None, buffer)``.
+
+    Raises:
+        LexerError: Se encontrar dois pontos decimais.
     """
     if char >= '0' and char <= '9':
         return "estado_numero", None, buffer + char
@@ -60,10 +88,19 @@ def estado_numero(char, buffer):
 
 
 def estado_numero_decimal(char, buffer):
-    """Acumula a parte fracionária do número após o ponto decimal.
+    """Acumula dígitos da parte fracionária após o ponto decimal.
 
-    char (str): caractere atual sendo analisado
-    buffer (str): parte inteira + ponto + dígitos fracionários acumulados
+    Emite o token ``NUMERO`` ao encontrar um delimitador.
+
+    Args:
+        char: Caractere atual sendo analisado.
+        buffer: Parte inteira + ponto + dígitos fracionários acumulados.
+
+    Returns:
+        Tupla ``(proximo_estado, token_ou_None, buffer)``.
+
+    Raises:
+        LexerError: Se encontrar segundo ponto decimal.
     """
     if char >= '0' and char <= '9':
         return "estado_numero_decimal", None, buffer + char
@@ -74,10 +111,17 @@ def estado_numero_decimal(char, buffer):
 
 
 def estado_identificador(char, buffer):
-    """Acumula letras maiúsculas para formar identificadores (MEM, RES, etc.).
+    """Acumula letras maiúsculas para formar identificadores.
 
-    char (str): caractere atual sendo analisado
-    buffer (str): letras maiúsculas acumuladas até o momento
+    Classifica o identificador como ``KEYWORD_RES`` (se for ``RES``)
+    ou ``MEM_ID`` (qualquer outra sequência de maiúsculas).
+
+    Args:
+        char: Caractere atual sendo analisado.
+        buffer: Letras maiúsculas acumuladas até o momento.
+
+    Returns:
+        Tupla ``(proximo_estado, token_ou_None, buffer)``.
     """
     if char >= 'A' and char <= 'Z':
         return "estado_identificador", None, buffer + char
@@ -88,12 +132,21 @@ def estado_identificador(char, buffer):
 
 
 def estado_inicial(char, buffer):
-    """
-    Ponto de entrada do AFD. Roteia para o estado correto com base no caractere.
-    Retorna (proximo_estado, token_ou_None, buffer).
+    """Ponto de entrada do AFD, roteia para o estado correto.
 
-    char (str): caractere atual sendo analisado
-    buffer (str): buffer acumulado (não utilizado neste estado, sempre vazio)
+    Analisa o caractere atual e determina a transição para o
+    estado apropriado (número, identificador, operador, parêntese)
+    ou levanta erro para caracteres inválidos.
+
+    Args:
+        char: Caractere atual sendo analisado.
+        buffer: Buffer acumulado (não utilizado, sempre vazio).
+
+    Returns:
+        Tupla ``(proximo_estado, token_ou_None, buffer)``.
+
+    Raises:
+        LexerError: Se o caractere não for reconhecido pelo AFD.
     """
     if char == ' ' or char == '\t':
         return "estado_inicial", None, ""
@@ -123,11 +176,22 @@ ESTADOS = {
 
 
 def tokenizar(linha):
-    """
-    Percorre a linha caractere por caractere, delegando ao estado atual do AFD.
-    Retorna lista de tokens ou levanta LexerError.
+    """Executa a análise léxica de uma linha usando o AFD.
 
-    linha (str): string com uma linha de expressão RPN
+    Percorre a linha caractere por caractere, delegando ao estado
+    atual do autômato finito determinístico. Ao final, valida o
+    balanceamento de parênteses.
+
+    Args:
+        linha: String com uma linha de expressão RPN.
+
+    Returns:
+        Lista de dicts ``{"tipo": str, "valor": str}`` com os
+        tokens reconhecidos.
+
+    Raises:
+        LexerError: Se encontrar caractere inválido ou parênteses
+            desbalanceados.
     """
     tokens = []
     pos = 0
