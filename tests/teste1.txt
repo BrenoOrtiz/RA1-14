@@ -8,5 +8,7 @@
 (17 5 %)
 (2.5 8 ^)
 erro#invalido
+((3 4 +) (2 5 *) -)
 (MA 10.25 + TOTAL)
 (TOTAL 5.1 -)
+((MA 2 /) (TOTAL 3 +) *)

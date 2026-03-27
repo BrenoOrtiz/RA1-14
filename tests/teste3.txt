@@ -9,5 +9,7 @@ d@do!err
 (50.75 VAL -)
 (6 RES 3 %)
 (7.2 2 ^)
+((VAL 2 /) (10 3 +) *)
 (VAL 5.5 + SOMA)
 (SOMA 8 RES -)
+((1 RES 2 RES +) (SOMA 5 /) -)

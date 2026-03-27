@@ -8,5 +8,7 @@ val$invalido!
 (10 X *)
 (Y 2 ^)
 (X Y * 100 +)
+((X 2 ^) (Y 2 ^) +)
 (200.8 BANCO)
 (BANCO X / Y -)
+((BANCO (X Y +) /) 10 *)
