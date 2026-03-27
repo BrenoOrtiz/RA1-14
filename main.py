@@ -25,17 +25,18 @@ def main():
     linhas = []
     resultados = []
     memoria = {}
-    historico = []
+    historico = {}
     asm_buffer = []
     tokens_json = []
- 
+    todas_tokens = []
+
     lerArquivo(nome_arquivo, linhas)
- 
+
     for i, linha in enumerate(linhas, start=1):
         tokens = []
- 
+
         parseExpressao(linha, tokens)
- 
+
         if not tokens:
             resultados.append(None)
             tokens_json.append({
@@ -44,29 +45,32 @@ def main():
                 "tokens": []
             })
             continue
- 
+
         tokens_json.append({
             "linha": i,
             "expressao": linha,
             "tokens": tokens
         })
-        
+
         try:
             resultado = executarExpressao(tokens, memoria, historico)
             resultados.append(resultado)
 
             if resultado is not None:
-                historico.append(resultado)
+                historico[i] = resultado
+
+            todas_tokens.append(list(tokens))
 
         except Exception as e:
             print(f"[ERRO executor] Linha {i}: {e}", file=sys.stderr)
             resultados.append(Exception(str(e)))
 
-        try:
-            gerarAssembly(tokens, asm_buffer)
-        except Exception as e:
-            print(f"[ERRO codegen] Linha {i}: {e}", file=sys.stderr)        
-            
+
+    try:
+        gerarAssembly(todas_tokens, asm_buffer)
+    except Exception as e:
+        print(f"[ERRO codegen] {e}", file=sys.stderr)
+
     os.makedirs("output", exist_ok=True)
 
     tokens_path = os.path.join("output", "tokens_last_run.json")
