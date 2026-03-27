@@ -1,11 +1,74 @@
 
-# Documentação do Projeto: Interpretador RPN → Assembly ARMv7
+# Interpretador RPN → Assembly ARMv7
+
+GRUPO - **RA1 14**
+
+Integrantes:
+
+**Breno Ortiz David**, user: @BrenoOrtiz
+
+**Vitor Coradin Ferreira**, user: @VitorCoradinFerreira
+
+**Carlos Eduardo Ferreira Brandt**, user: @CaaduuuC
+
+**João Ishikawa Onofrio**, user: @JoaoIshikawa
+
+Projeto da disciplina de **Construcao de Interpretadores** (PUCPR) que implementa um pipeline completo de processamento de expressoes em **Notacao Polonesa Reversa (RPN)**:
+
+
+1. **Analise Lexica** — Automato Finito Deterministico (AFD) implementado sem regex, reconhece numeros inteiros e decimais, operadores, identificadores de memoria e parenteses.
+2. **Execucao** — Avaliador de expressoes RPN com pilha, suporte a 7 operacoes aritmeticas, variaveis de memoria e referencia a resultados anteriores (`RES`).
+3. **Geracao de Codigo** — Traduz as expressoes para **Assembly ARMv7** com instrucoes **VFP .F64** (ponto flutuante de 64 bits, norma IEEE 754), compativel com a placa DE1-SoC no simulador CPUlator.
+
 
 ---
 
-# Diagrama de Estados do AFD
+## Pre-requisitos
 
-[https://excalidraw.com/#json=30W3-zuSSFjBpbou5H_s7,Z0F_Bzyei0viubi6o_NYNA](Link para Diagrama)
+- **Python 3.10+** (utiliza apenas a biblioteca padrao; nao ha dependencias externas)
+
+Para executar o assembly gerado:
+- [CPUlator ARMv7 DE1-SoC](https://cpulator.01xz.net/?sys=arm-de1soc) (simulador online)
+
+---
+
+## Como Rodar
+
+### Executar o interpretador
+
+```bash
+python main.py tests/teste1.txt
+```
+
+Arquivos de saida gerados em `output/`:
+- `tokens_last_run.json` — tokens reconhecidos pelo analisador lexico
+- `assembly_last_run.asm` — codigo Assembly ARMv7
+
+### Executar os testes unitarios
+
+```bash
+# Todos os testes de uma vez
+python -m unittest discover -s tests -p "test_*.py" -v
+
+# Testes individuais
+python -m unittest tests.test_lexer -v
+python -m unittest tests.test_executor -v
+python -m unittest tests.test_codegen -v
+```
+
+### Executar o assembly no CPUlator
+
+1. Abra o CPUlator (ARMv7 DE1-SoC)
+2. Cole o conteudo de `output/assembly_last_run.asm`
+3. Compile e execute — os resultados serao impressos no terminal JTAG UART
+
+---
+
+## Diagrama de Estados do AFD
+
+[Link para Diagrama](https://excalidraw.com/#json=30W3-zuSSFjBpbou5H_s7,Z0F_Bzyei0viubi6o_NYNA)
+
+---
 
 ## Estrutura de Pastas
 
@@ -50,13 +113,13 @@ Implementa um Autômato Finito Determinístico (AFD) onde **cada estado é uma f
 
 ---
 
-##### `estado_inicial(char, pos, linha)`
-- **Entrada:** caractere atual (`char`), posição (`pos`), linha completa (`linha`)
-- **Saída:** tupla `(proximo_estado, token_parcial)` — próximo estado e buffer acumulado
+##### `estado_inicial(char, buffer)`
+- **Entrada:** caractere atual (`char`), buffer acumulado (`buffer`, sempre vazio neste estado)
+- **Saída:** tupla `(proximo_estado, token_ou_None, buffer)` — próximo estado, token emitido (ou `None`) e buffer atualizado
 - **Lógica:** Ponto de entrada do AFD. Roteia para o estado correto com base no primeiro caractere:
-  - Dígito ou `-`/`+` seguido de dígito → `estado_numero`
+  - Dígito → `estado_numero`
   - Letra maiúscula → `estado_identificador`
-  - `(` ou `)` → `estado_parentese`
+  - `(` ou `)` → `estado_parentese` (emite token imediatamente)
   - Operador (`+`, `-`, `*`, `/`, `%`, `^`) → `estado_operador`
   - Espaço/tabulação → `estado_inicial` (ignora)
   - Qualquer outro → `estado_erro`
@@ -65,44 +128,45 @@ Implementa um Autômato Finito Determinístico (AFD) onde **cada estado é uma f
 
 ##### `estado_numero(char, buffer)`
 - **Entrada:** caractere atual, buffer acumulado da leitura anterior
-- **Saída:** `(proximo_estado, buffer_atualizado)`
+- **Saída:** `(proximo_estado, token_ou_None, buffer)`
 - **Lógica:** Acumula dígitos e um único ponto decimal.
   - Dígito → permanece em `estado_numero`, acumula
   - `.` (primeiro) → transita para `estado_numero_decimal`
-  - `.` (segundo) → transita para `estado_erro` (número malformado, ex.: `3.14.5`)
-  - Espaço, `)` ou EOF → emite token do tipo `NUMERO`, retorna ao `estado_inicial`
+  - `.` (segundo) → levanta `LexerError` (número malformado, ex.: `3.14.5`)
+  - Qualquer outro caractere (delimitador) → emite token `NUMERO` e reprocessa o caractere atual via estado `reprocessar`
 
 ---
 
 ##### `estado_numero_decimal(char, buffer)`
-- **Entrada:** caractere atual, buffer com parte inteira + ponto
-- **Saída:** `(proximo_estado, buffer_atualizado)`
+- **Entrada:** caractere atual, buffer com parte inteira + ponto + dígitos fracionários
+- **Saída:** `(proximo_estado, token_ou_None, buffer)`
 - **Lógica:** Acumula a parte fracionária do número.
   - Dígito → permanece em `estado_numero_decimal`
-  - Qualquer não-dígito → emite token `NUMERO`, transita ao estado adequado
-  - Segundo `.` → `estado_erro`
+  - Segundo `.` → levanta `LexerError`
+  - Qualquer outro caractere (delimitador) → emite token `NUMERO` e reprocessa o caractere atual via estado `reprocessar`
 
 ---
 
 ##### `estado_identificador(char, buffer)`
-- **Entrada:** caractere atual (letra maiúscula), buffer
-- **Saída:** `(proximo_estado, buffer_atualizado)`
+- **Entrada:** caractere atual, buffer de letras maiúsculas acumuladas
+- **Saída:** `(proximo_estado, token_ou_None, buffer)`
 - **Lógica:** Acumula letras maiúsculas para formar identificadores (`MEM`, `RES`, `VAR`, etc.).
   - Letra maiúscula → permanece, acumula
-  - Outro caractere → verifica se buffer é `RES` (keyword) ou identificador de memória
+  - Outro caractere → classifica o buffer e reprocessa o caractere atual:
     - Se `RES` → emite token `KEYWORD_RES`
     - Caso contrário → emite token `MEM_ID`
 
 ---
 
 ##### `estado_operador(char, buffer)`
-- **Entrada:** caractere atual (operador)
-- **Saída:** `(estado_inicial, token)`
+- **Entrada:** caractere atual, buffer (contém `/` quando aguardando segundo caractere)
+- **Saída:** `(proximo_estado, token_ou_None, buffer)`
 - **Lógica:** Reconhece operadores de um ou dois caracteres.
   - `+`, `-`, `*`, `%`, `^` → emite token `OPERADOR` imediatamente
-  - `/` → verifica próximo caractere:
-    - `//` → emite token `OPERADOR_INT_DIV`
-    - `/` sozinho → emite token `OPERADOR`
+  - `/` (primeiro) → permanece em `estado_operador` com buffer `/`, aguardando próximo caractere
+  - Segundo caractere após `/`:
+    - `/` → emite token `OPERADOR_INT_DIV` (valor `//`)
+    - Outro → emite token `OPERADOR` (valor `/`) e reprocessa o caractere atual
 
 ---
 
@@ -154,11 +218,11 @@ Implementa um Autômato Finito Determinístico (AFD) onde **cada estado é uma f
 
 ### `executor.py` — Avaliação de Expressões RPN
 
-#### `executarExpressao(tokens: list[dict], memoria: dict, historico: list) -> float | None`
+#### `executarExpressao(tokens: list[dict], memoria: dict, historico: dict) -> float | None`
 - **Entrada:**
   - `tokens` — lista de tokens produzida por `parseExpressao`
   - `memoria` — dicionário `{nome_mem: float}` com variáveis de memória e seus valores
-  - `historico` — lista de resultados numéricos de expressões anteriores para referência `RES`
+  - `historico` — dicionário `{num_linha: float}` com resultados de linhas anteriores para referência `RES`
 - **Saída:** `float` com o resultado da expressão, ou `None` para comandos de armazenamento em memória
 - **Lógica:**
   1. Utiliza uma pilha para avaliar a expressão RPN, tratando parênteses como delimitadores de subexpressões:
@@ -166,7 +230,7 @@ Implementa um Autômato Finito Determinístico (AFD) onde **cada estado é uma f
      - `FECHA_PAREN` → finaliza a subexpressão atual; o resultado parcial da subexpressão é empilhado de volta como operando
      - `NUMERO` → converte para `float` e empilha como operando
      - `OPERADOR` / `OPERADOR_INT_DIV` → desempilha dois operandos, aplica a operação e empilha o resultado
-     - `KEYWORD_RES` → o próximo número indica o índice no `historico`; empilha o valor correspondente
+     - `KEYWORD_RES` → desempilha o número anterior como índice (chave) no `historico`; empilha o valor correspondente
      - `MEM_ID` seguido de valor → armazena o valor em `memoria` sob o identificador; retorna `None`
      - `MEM_ID` sozinho → busca o valor em `memoria` e empilha (retorna `0.0` se não inicializado)
   2. Ao final, o topo da pilha contém o resultado da expressão
@@ -199,21 +263,21 @@ Implementa um Autômato Finito Determinístico (AFD) onde **cada estado é uma f
 
 ### `codegen.py` — Geração de Código Assembly ARMv7
 
-#### `gerarAssembly(tokens: list[dict], codigo_assembly: list) -> str`
+#### `gerarAssembly(lista_tokens: list, codigo_assembly: list) -> str`
 - **Entrada:**
-  - `tokens` — lista de tokens de uma expressão
-  - `codigo_assembly` — lista acumuladora de linhas Assembly (modificada in-place)
-- **Saída:** string com o bloco de código Assembly gerado para aquela expressão
+  - `lista_tokens` — lista onde cada elemento é uma lista de tokens (dicts `{"tipo": str, "valor": str}`) ou a string `"ERRO_LEXICO"` para linhas com erro léxico
+  - `codigo_assembly` — lista mutável onde o bloco assembly final será adicionado como string única
+- **Saída:** string com o programa Assembly completo (seções `.data` e `.text`)
 - **Lógica:**
-  1. Percorre os tokens e traduz cada operação RPN para instruções ARMv7:
-     - Números são carregados via `VLDR` / `MOV` para registradores de ponto flutuante (`S0`, `S1`, etc.) ou inteiros (`R0`, `R1`)
+  1. Percorre todas as expressões e traduz cada operação RPN para instruções ARMv7:
+     - Números são carregados via `VLDR` para registradores VFP de 64 bits (`D0`, `D1`, etc.)
      - Operações usam instruções VFP (`VADD.F64`, `VSUB.F64`, `VMUL.F64`, `VDIV.F64`) para float64
-     - Divisão inteira e resto usam `SDIV` e sequência `MLS`
+     - Divisão inteira e resto usam `VDIV.F64` + `VCVT.S32.F64` / `VCVT.F64.S32` (truncamento via VFP)
      - Potenciação gera loop com `VMUL.F64`
      - Comandos `MEM` mapeiam para endereços de memória definidos na seção `.data`
-     - Resultados são enviados para o display HEX do Cpulator via endereço mapeado de I/O (`0xFF200020`)
-  2. Inclui cabeçalho `.global _start`, seção `.data` e seção `.text`
-  3. Acumula todo o Assembly gerado no arquivo `output/assembly_last_run.asm`
+     - Resultados são impressos via JTAG UART (`0xFF201000`) com sub-rotinas `uart_char`, `uart_int` e `uart_float`
+  2. Inclui cabeçalho `.global _start`, inicialização da FPU, seção `.data` e seção `.text`
+  3. Gera um único bloco Assembly com todas as expressões, sub-rotinas de impressão e dados
 
 ---
 
@@ -244,11 +308,15 @@ Implementa um Autômato Finito Determinístico (AFD) onde **cada estado é uma f
 2. lerArquivo(arquivo, linhas)
 3. Para cada linha em linhas:
    a. parseExpressao(linha, tokens)        → extrai tokens via AFD
+      - Se LexerError: registra "Erro lexico", acumula "ERRO_LEXICO" e pula para próxima linha
+      - Se tokens vazio (expressão sem parênteses/operador): registra None e pula
    b. executarExpressao(tokens, mem, hist) → avalia expressão RPN, retorna float|None
-   c. gerarAssembly(tokens, asm_buffer)    → acumula código Assembly ARMv7
-4. Salva tokens em output/tokens_last_run.json
-5. Salva Assembly em output/assembly_last_run.asm
-6. exibirResultados(resultados)
+      - Se resultado não-None: salva em historico[num_linha]
+   c. Acumula tokens em todas_tokens
+4. gerarAssembly(todas_tokens, asm_buffer) → gera bloco Assembly único com todas as expressões
+5. Salva tokens em output/tokens_last_run.json
+6. Salva Assembly em output/assembly_last_run.asm
+7. exibirResultados(resultados)
 
 ```
 
@@ -263,18 +331,29 @@ arquivo.txt
 lerArquivo()
     │  lista de linhas (str)
     ▼
-parseExpressao()  ←→  tokenizar() [AFD]
-    │  lista de tokens (dict)
-    ├──────────────────────────────────────────────┐
-    ▼                                              ▼
-executarExpressao()                         gerarAssembly()
-  (avalia com pilha,                               │  str (ARMv7)
-   trata parênteses)                               ▼
-    │  float | None                   assembly_last_run.asm
-    ▼
-exibirResultados()
+┌─ Para cada linha: ──────────────────────┐
+│  parseExpressao()  ←→  tokenizar() [AFD]│
+│      │  lista de tokens (dict)          │
+│      ▼                                  │
+│  executarExpressao()                    │
+│    (avalia com pilha,                   │
+│     trata parênteses)                   │
+│      │  float | None | str              │
+│      ▼                                  │
+│  acumula tokens em todas_tokens         │
+│  acumula resultado em resultados        │
+└─────────────────────────────────────────┘
     │
- stdout
+    ├── todas_tokens ──► gerarAssembly()
+    │                        │  str (ARMv7)
+    │                        ▼
+    │                   assembly_last_run.asm
+    │
+    ├── resultados ───► exibirResultados()
+    │                        │
+    │                     stdout
+    │
+    └── tokens_json ──► tokens_last_run.json
 ```
 
 ---
@@ -317,12 +396,4 @@ exibirResultados()
 
 ```bash
 python main.py tests/teste1.txt
-```
-
-Saída esperada no terminal:
-```
-Linha 1: 5.1
-Linha 2: 12.0
-Linha 3: (sem retorno)
-...
 ```
