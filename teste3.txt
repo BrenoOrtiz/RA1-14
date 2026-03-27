@@ -13,3 +13,4 @@ d@do!err
 (VAL 5.5 + SOMA)
 (SOMA 8 RES -)
 ((1 RES 2 RES +) (SOMA 5 /) -)
+((15 4 //) (27 5 %) ^)

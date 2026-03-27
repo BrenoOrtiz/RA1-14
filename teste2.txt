@@ -4,11 +4,13 @@
 (X Y - 2.5 *)
 (X Y //)
 (X Y %)
-val$invalido!
-(10 X *)
 (Y 2 ^)
+val$invalido!
+(3 RES 4 RES -)
+(10 X *)
 (X Y * 100 +)
-((X 2 ^) (Y 2 ^) +)
 (200.8 BANCO)
 (BANCO X / Y -)
+((X 2 ^) (Y 2 ^) +)
 ((BANCO (X Y +) /) 10 *)
+((100 7 %) (50 3 //) -)
